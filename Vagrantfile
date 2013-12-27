@@ -15,7 +15,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ubuntu10_config.vm.provision "chef_solo" do |chef| 
       chef.log_level = "debug"
       chef.cookbooks_path = "cookbooks"
-#      chef.add_recipe "package-update"
       chef.add_recipe "tomcat-component"
         chef.json = {
           "scm" => {
@@ -36,8 +35,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   
   #Ubuntu 12.04
   config.vm.define "ubuntu12" do |ubuntu12_config|
-    ubuntu12_config.vm.box = "ubuntu_12.04_x64"
-    ubuntu12_config.vm.box_url = "http://cloud-images.ubuntu.com/vagrant/precise/current/precise-server-cloudimg-amd64-vagrant-disk1.box"
+    ubuntu12_config.vm.box = "ubuntu-12-x64.box"
+    ubuntu12_config.vm.box_url = "/Users/jolly_rojer/Projects/Cometera/vagrant-boxes/ubuntu-12-x64.box"
     ubuntu12_config.vm.hostname = "ubuntu12.qubell.int"
     ubuntu12_config.vm.network "forwarded_port", guest: 8080, host: 8090
     ubuntu12_config.vm.network "public_network", :bridge => 'en0: Wi-Fi (AirPort)'
@@ -48,8 +47,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ubuntu12_config.vm.provision "chef_solo" do |chef| 
       chef.log_level = "debug"
       chef.cookbooks_path = "cookbooks"
-#      chef.add_recipe "package-update"
-      chef.add_recipe "tomcat-component"
+     # chef.add_recipe "tomcat"
+      chef.add_recipe "tomcat-component::deploy_libs"
         chef.json = {
           "scm" => {
             "provider" => "git",
@@ -62,6 +61,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             "name" => "petclinic",
             "user" => "petclinic_user",
             "password" => "petclinic_pass"
+          },
+          "tomcat-component" => {
+            "lib_uri" => "file:///tmp/slf4j-libs.tar.gz"
+            #"lib_uri" => "https://dl.dropboxusercontent.com/u/250836/slf4j-libs.tar.gz"
           }
         }
     end
