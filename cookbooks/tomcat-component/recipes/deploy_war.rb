@@ -22,7 +22,8 @@ file_name = File.basename(uri.path)
 if ( node['tomcat-component']['lib_uri'].start_with?('http', 'ftp') )
   remote_file "/tmp/#{file_name}" do
     source node['tomcat-component']['war_uri']
-    notifies :restart, "service[tomcat]", :immediately
   end
+end
+
 
 #create contex file
