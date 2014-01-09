@@ -47,8 +47,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ubuntu12_config.vm.provision "chef_solo" do |chef| 
       chef.log_level = "debug"
       chef.cookbooks_path = "cookbooks"
-     # chef.add_recipe "tomcat"
+      chef.add_recipe "tomcat"
       chef.add_recipe "tomcat-component::deploy_libs"
+      chef.add_recipe "tomcat-component::deploy_war"
         chef.json = {
           "scm" => {
             "provider" => "git",
@@ -63,8 +64,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             "password" => "petclinic_pass"
           },
           "tomcat-component" => {
-            "lib_uri" => "file:///tmp/slf4j-libs.tar.gz"
-            #"lib_uri" => "https://dl.dropboxusercontent.com/u/250836/slf4j-libs.tar.gz"
+            #"lib_uri" => "file:///tmp/slf4j-libs.tar.gz"
+            "lib_uri" => "https://dl.dropboxusercontent.com/u/250836/slf4j-libs.tar.gz",
+            #"war_uri" => "https://dl.dropboxusercontent.com/u/250836/sample.war"
+            "war_uri" => "file:///tmp/sample.war"
+          },
+          "context" => {
+            "environments" => {
+              "sample" => {
+                "type" => "java.lang.String",
+                "value" => "/var/lib/tomcat/webapps/sample",
+                "override" => "true",
+              }
+            }
           }
         }
     end
