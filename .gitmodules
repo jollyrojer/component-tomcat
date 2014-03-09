@@ -22,9 +22,6 @@
 [submodule "cookbooks/git"]
 	path = cookbooks/git
 	url = https://github.com/opscode-cookbooks/git.git
-[submodule "cookbooks/maven"]
-	path = cookbooks/maven
-	url = https://github.com/opscode-cookbooks/maven.git
 [submodule "component-skeleton"]
 	path = component-skeleton
 	url = https://github.com/qubell-bazaar/component-skeleton.git
@@ -34,6 +31,3 @@
 [submodule "cookbooks/yum"]
 	path = cookbooks/yum
 	url = https://github.com/opscode-cookbooks/yum.git
-[submodule "cookbooks/ark"]
-	path = cookbooks/ark
-	url = https://github.com/eanrollings/ark.git
