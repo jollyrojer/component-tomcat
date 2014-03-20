@@ -19,23 +19,7 @@ application:
       app-hosts: "bind(workflow#result.app-hosts)"
       app-port: "bind(workflow#result.app-port)"
 
-  bindings:
-    - [workflow, wfService]
-    - [workflow, secureStore]
-
   components:
-    wfService:
-      type: reference.Service
-      interfaces:
-        executor:
-          execute-workflow: receive-command(object request => object status => object status)
-          execute-command: send-command(string interface, string command, map<string, object> arguments => map<string, object> response => map<string, object> response)
-    secureStore:
-      type: reference.Service
-      interfaces:
-        keypair-store:
-          get-keypair: receive-command(string id => object privateKey)
-
     workflow:
       type: workflow.Instance
       interfaces:
@@ -44,18 +28,14 @@ application:
           quantity: configuration(string)
           java-opts: configuration(string)
         actions:
-          build-app: receive-command(string scm-provider, string git-uri, string app-branch)
+          build-app: receive-command(string scm-provider, string git-uri, string app-branch => list<string> wars)
           deploy-libs: receive-command(list<string> lib-uri)
-          deploy-war: receive-command(string war-uri, object context-attrs, object context-nodes)
+          deploy-war: receive-command(string uri, string appname, bool create-context, object context-attrs, object context-nodes)
           reconfigure: receive-command(string java-opts)
           manage-service: receive-command(string service-action)
         result:
           app-hosts: publish-signal(list<string>)
           app-port: publish-signal(string)
-        keypair-store:
-          get-keypair: send-command(string id => object privateKey)
-
-      required: [keypair-store]
 
       configuration:
         configuration.triggers:
@@ -72,32 +52,24 @@ application:
             steps:
               - provision-vm:
                   action: provisionAmazonVm
-                  phase: provision
                   parameters:
                     roleName: default
-                    hardwareId: m1.small
+                    hardwareId: m1.medium
                     targetQuantity: "{$.quantity}"
-                    retryCount: 1
-                    jcloudsProvider: aws-ec2
-                    jcloudsEndpoint: https://ec2.us-east-1.amazonaws.com
-                    jcloudsRegions: us-east-1
                     jcloudsNodeNamePrefix: component
-                    jcloudsIdentity: "{$.identity}"
-                    jcloudsCredential: "{$.credential}"
                     vmIdentity: ubuntu
                     imageId: us-east-1/ami-967edcff
-                    ec2SecurityGroup: default
                   output:
                     app-hosts: ips
 
               - tomcat-install:
                   action: "chefsolo"
-                  precedingPhases: [ provision ]
+                  precedingPhases: [ provision-vm ]
                   phase: tomcat-install
                   parameters:
                     roles: [ default ]
                     runList: ["recipe[tomcat-component]"]
-                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-2841f6c.tar.gz"
+                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-17cf0bd.tar.gz"
                     jattrs:
                       tomcat:
                         port: "{$.app-port}"
@@ -127,13 +99,17 @@ application:
                     isSolo: true
                     roles: [ default ]
                     runList: [ "recipe[build]" ]
-                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-2841f6c.tar.gz"
+                    recipeUrl: "https://raw.github.com/loky9000/broadleaf-component/master/cookbooks.tar.gz"
                     jattrs:
                       scm:
                         provider: "{$.scm-provider}"
                         repository: "{$.git-uri}"
                         revision: "{$.app-branch}"
-
+                  output:
+                    chefAttrs: chefState
+            return:
+              wars:
+                value: "{$.chefAttrs['*'][0].build.artefacts}"
           deploy-libs:
             parameters:
               - lib-uri:
@@ -147,13 +123,20 @@ application:
                     isSolo: true
                     roles: [ default ]
                     runList: [ "recipe[tomcat-component::deploy_libs]" ]
-                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-2841f6c.tar.gz" 
+                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-17cf0bd.tar.gz" 
                     jattrs:
                       tomcat-component:
                         lib_uri: "{$.lib-uri}"
 
           deploy-war:
             parameters:
+              - create-context:
+                  description: Create or not context.xml
+                  default: true
+              - uri:
+                  description: WAR uri
+              - appname:
+                  description: APP name
               - context-attrs:
                   description: Context parameters for context.xml
               - context-nodes:
@@ -167,10 +150,13 @@ application:
                     isSolo: true
                     roles: [ default ]
                     runList: [ "recipe[tomcat-component::deploy_war]" ]
-                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-2841f6c.tar.gz" 
+                    recipeUrl: "https://raw.github.com/loky9000/broadleaf-component/master/cookbooks.tar.gz" 
                     jattrs:
                       tomcat-component:
-                        war_uri: "{$.war-uri}"
+                        war:
+                          uri: "{$.uri}"
+                          appname: "{$.appname}"
+                        create_context: "{$.create-context}"
                         context:
                           context_attrs: "{$.context-attrs}"
                           context_nodes: "{$.context-nodes}"
@@ -186,7 +172,7 @@ application:
                     isSolo: true
                     roles: [default]
                     runList: ["recipe[tomcat-component]"]
-                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-2841f6c.tar.gz" 
+                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-17cf0bd.tar.gz" 
                     jattrs:
                       tomcat:
                         port: "{$.app-port}"
@@ -204,14 +190,10 @@ application:
                     isSolo: true
                     roles: [default]
                     runList: ["recipe[tomcat-component::manage]"]
-                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-2841f6c.tar.gz"
+                    recipeUrl: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-tomcat-dev-cookbooks-stable-17cf0bd.tar.gz"
                     jattrs:
                       base:
                         manage:
                           services: ["tomcat6"]
                           action: "{$.service-action}"
 
-          destroy:
-            steps:
-              - destroy:
-                  action: undeployEnv
