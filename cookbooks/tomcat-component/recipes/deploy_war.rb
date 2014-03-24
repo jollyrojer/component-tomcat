@@ -14,8 +14,9 @@ require 'uri'
 if ( node['tomcat-component']['war']['uri'].start_with?('http', 'ftp') )
   uri = URI.parse(node['tomcat-component']['war']['uri'])
   file_name = node['tomcat-component']['war']['appname']
+  ext_name = File.extname(file_name)
   app_name = file_name[0...-4]
-
+  
   remote_file "/tmp/#{file_name}" do
     source node['tomcat-component']['war']['uri']
   end
@@ -26,8 +27,13 @@ elsif ( node['tomcat-component']['war']['uri'].start_with?('file') )
   url = node['tomcat-component']['war']['uri']
   file_path = URI.parse(url).path
   file_name = node['tomcat-component']['war']['appname']
+  ext_name =  File.extname(file_name)
   app_name = File.basename(file_name)[0...-4]
 end
+
+  if ( ! %w{.war .jar}.include?(ext_name))
+     fail "appname must be .war or .jar"
+   end
 
 #cleanup tomcat before deploy
 file "#{node['tomcat']['webapp_dir']}/#{file_name}" do
