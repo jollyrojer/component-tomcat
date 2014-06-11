@@ -26,7 +26,7 @@ function publish {
 
     package $REVISION
 
-    travis-artifacts upload --path ${REPO_NAME}-cookbooks-${REVISION}.tar.gz --target-path ${OWNER_NAME}/
+    aws s3 cp ${REPO_NAME}-cookbooks-${REVISION}.tar.gz s3://qubell-starter-kit-artifacts/${OWNER_NAME}/ --acl public-read-write
 }
 
 function replace {
